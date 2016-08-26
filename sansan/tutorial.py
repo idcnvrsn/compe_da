@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
+from sklearn.externals import joblib
 
 df = pd.read_csv('train.csv')
+df = df.sort("filename")
+df = df.reset_index( drop = True )
 df.head()
 
 import os
@@ -77,7 +80,8 @@ X, Y = load_data('train.csv', 'train_images', img_shape, orientations, pixels_pe
 x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.5, random_state=1234)
 print('学習データの数:', len(x_train))
 print('検証データの数:', len(x_test))
-
+joblib.dump(X,"X.pkl")
+joblib.dump(Y,"Y.pkl")
 
 from sklearn.linear_model import LogisticRegression
 
