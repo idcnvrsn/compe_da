@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Apr 21 18:01:35 2016
-
-"""
-import cv2
-from skimage.feature import hog
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier#ExtraTreesClassifier
@@ -16,84 +10,101 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.externals import joblib
 from datetime import datetime
-#from evolutionary_search import EvolutionaryAlgorithmSearchCV
+from evolutionary_search import EvolutionaryAlgorithmSearchCV
 from sklearn.cross_validation import StratifiedKFold
 
 import os
 import time
 
+df = pd.read_csv('train.csv')
+df = df.sort("filename")
+df = df.reset_index( drop = True )
+df.head()
 
+from time import clock
+from PIL import Image
 
-
-#train_path = 'resize_imgs320x240/train'
-
-fMakeTrain = 1
-fDoGrid = 0
-fDoEvol = 1
-width = 320
-height = 240
-smp_count = 22424
+fMakeTrain = 0
+fDoGrid = 1
+fDoEvol = 0
 
 if fMakeTrain == 1:
-    X = np.empty((smp_count,width*height),dtype ='uint8')
-    y = np.empty((smp_count),dtype ='uint8')
+
+    img = Image.open(os.path.join('train_images', df.ix[0].filename))                      # 2842.pngの読み込み
+    img_cropped = img.crop((df.ix[0].left, df.ix[0].top, df.ix[0].right, df.ix[0].bottom)) # cropメソッドにより項目領域を切り取る
+    img_cropped
     
-    #訓練画像一覧を開きファイル名でソート
-    train_csv = pd.read_csv("train.csv")
-    train_csv = train_csv.sort("filename")
-    train_csv = train_csv.reset_index( drop = True )
+    img_2 = Image.open(os.path.join('train_images', df.ix[2].filename))
+    img_2_cropped = img_2.crop((df.ix[2].left, df.ix[2].top, df.ix[2].right, df.ix[2].bottom))
+    img_2_cropped
     
-    old_row_filename = ""
-    for i, row in train_csv.iterrows():
-    #    print(i,row.filename)
-        image_file = "./train_images_1/" + row.filename
+    img_cropped = img_cropped.convert('L') # convertメソッドによりグレースケール化
+    print(img_cropped.size)
     
-        if row.filename != old_row_filename:
-            src = cv2.imread(image_file,0)
-            print(old_row_filename)
-            old_row_filename = row.filename
+    img_resized = img_cropped.resize((216, 72))  # resizeメソッドにより画像の大きさを変える
+    img_resized
     
-        tmp = src[row.top:row.bottom,row.left:row.right]
+    img_array = np.array(img_resized)
+    print(img_array.shape)
+    
+    from skimage.feature import hog
+    
+    img_data = np.array(hog(img_array,orientations = 6,
+                            pixels_per_cell = (12, 12),
+                            cells_per_block = (1, 1)))     
+    print(img_data.shape)
+    
+    def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cells_per_block):
+        classes = ['company_name', 'full_name', 'position_name', 'address', 'phone_number', 'fax', 'mobile', 'email', 'url']
+        df = pd.read_csv(file_name)
+        n = len(df)
+        Y = np.zeros((n, len(classes)))
+        print('loading...')
+        s = clock()
+        for i, row in df.iterrows():
+            f, l, t, r, b = row.filename, row.left, row.top, row.right, row.bottom
+            print(i,f)
+            img = Image.open(os.path.join(img_dir, f)).crop((l,t,r,b)) # 項目領域画像を切り出す
+            if img.size[0]<img.size[1]:                                # 縦長の画像に関しては90度回転して横長の画像に統一する
+                img = img.transpose(Image.ROTATE_90)
+            
+            # preprocess
+            img_gray = img.convert('L')
+            img_gray = np.array(img_gray.resize(img_shape))/255.       # img_shapeに従った大きさにそろえる
+    
+    
+            # feature extraction
+            img = np.array(hog(img_gray,orientations = orientations,
+                               pixels_per_cell = pixels_per_cell,
+                               cells_per_block = cells_per_block))
+            if i == 0:
+                feature_dim = len(img)
+                print('feature dim:', feature_dim)
+                X = np.zeros((n, feature_dim))
+            
+            X[i,:] = np.array([img])
+            y = list(row[classes])
+            Y[i,:] = np.array(y)
         
+        print('Done. Took', clock()-s, 'seconds.')
+        return X, Y
         
-#        cv2.imwrite("tmp.png",tmp)
-        """
-        if tmp.shape[0] > tmp.shape[1]:
-            print(row.filename,"縦")
-        else:
-            print(row.filename,"横")
-        """
     
-        if i == 80:
-            break
-
-
-    dir_list = ["train_images_1","train_images_2","train_images_3"]#next(os.walk(train_path))[1]
-    
-    i = 0
-#    for d in ['c1']:
-    for d in dir_list:
-#        t = d.replace('c','') 
-#        d = train_path + '/' + d
-        files = os.listdir(d)
-        for file in files:
-            src = cv2.imread(d + '/' + file,0)
-            src = cv2.resize(src,(width,height))
-            src = src.ravel()
-            src = src[:, np.newaxis]
-            src = src.T
-            X[i] = src
-            y[i] = np.uint8(t)
-            i = i + 1
-   
-    joblib.dump(X,"X_"+str(width) + "x" + str(height) + ".pkl",compress=1)
-    joblib.dump(y,"y_"+str(width) + "x" + str(height) + ".pkl",compress=1)
-
+    img_shape = (216,72)
+    orientations = 6
+    pixels_per_cell = (12,12)
+    cells_per_block = (1, 1)
+    X, y = load_data('train.csv', 'train_images', img_shape, orientations, pixels_per_cell, cells_per_block)
+#    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.5, random_state=1234)
+    joblib.dump(X,"X.pkl")
+    joblib.dump(y,"Y.pkl")
 else:
-    X = joblib.load("X_"+str(width) + "x" + str(height) + ".pkl")
-    y = joblib.load("y_"+str(width) + "x" + str(height) + ".pkl")
+    X = joblib.load("X.pkl")
+    y = joblib.load("y.pkl")
 
-X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2, random_state=0)
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.5, random_state=1234)
+print('学習データの数:', len(X_train))
+print('検証データの数:', len(X_test))
 
 if __name__ == '__main__':
 
@@ -180,4 +191,5 @@ if __name__ == '__main__':
         file.write(str(confusion_matrix(y_test, pred)))
     
     joblib.dump(estimator,dir_name + '/' + 'estimator.pkl',compress=1)
+
 
