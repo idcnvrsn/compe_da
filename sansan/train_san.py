@@ -113,12 +113,12 @@ if __name__ == '__main__':
     start = time.time()          
     
     if fDoGrid == 1:
-        param_grid = {'bootstrap':[False],
-                     'criterion': ['entropy'],
-                     'max_depth': [19],
-                     'max_features': [295],
-                     'min_samples_split': [3],
-                     'n_estimators': [198],
+        param_grid = {#'bootstrap':[False],
+                     #'criterion': ['entropy'],
+                     #'max_depth': [19],
+                     #'max_features': [100],
+                     #'min_samples_split': [3],
+                     'n_estimators': [200],
                      'n_jobs': [-1],
                      "verbose":[1]}
                       
@@ -175,6 +175,11 @@ if __name__ == '__main__':
     print('test score',accuracy_score(y_test,pred))
     print(classification_report(y_test, pred))
     print(confusion_matrix(y_test, pred))
+    
+    def mae(y, yhat):
+        return np.mean(np.abs(y - yhat))
+    
+    print('MAE:', mae(y_test, pred))
     
     dir_name = datetime.now().strftime("%Y%m%d_%H%M%S") 
     os.mkdir(dir_name)
