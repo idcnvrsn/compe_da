@@ -1,17 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed May 11 15:52:58 2016
+Created on Mon Aug 29 14:53:22 2016
 """
 
 from multiprocessing import Process, Manager
 import multiprocessing
 import time
-import cv2
 import numpy as np
 import pandas as pd
 from sklearn.externals import joblib
 import glob
 import os
+
+from sklearn.externals import joblib
+
+import os
+
+from time import clock
+from PIL import Image
 
 countCore = multiprocessing.cpu_count()
 parallel = 1
