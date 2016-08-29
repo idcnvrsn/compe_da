@@ -116,6 +116,7 @@ if __name__ == '__main__':
   
 #    k = ( 1 + int(math.log(len(X_train))/math.log(2)) ) #* 4    
     if fDoGrid == 1:
+        '''
         param_grid = {#'bootstrap':[False],
                      #'criterion': ['entropy'],
                      #'max_depth': [19],
@@ -131,6 +132,7 @@ if __name__ == '__main__':
         '''                                                   
 
         param_grid = {"n_estimators":[100],
+                      'objective':['multi:softprob'],
     #                  "max_depth": [3, None],
 #                      "max_features": ['sqrt', 'None'],
     #                  "min_samples_split": [1, 3, 10],
@@ -140,8 +142,8 @@ if __name__ == '__main__':
 #                      "verbose":[1]
                       "nthread":[-1]
                       }
-        estimator = GridSearchCV(RandomForestClassifier(10),param_grid=param_grid,cv = StratifiedKFold(y_train, n_folds=k),n_jobs=1,verbose=1)
-        '''
+        estimator = GridSearchCV(XGBClassifier(10),param_grid=param_grid,cv = 10,n_jobs=1,verbose=1)
+
 
 
         estimator.fit(X_train, y_train)
