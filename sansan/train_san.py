@@ -18,10 +18,6 @@ import math
 import os
 import time
 
-df = pd.read_csv('train.csv')
-df = df.sort_values(by=["filename"])
-df = df.reset_index( drop = True )
-df.head()
 
 from time import clock
 from PIL import Image
@@ -31,6 +27,10 @@ fDoGrid = 1
 fDoEvol = 0
 
 if fMakeTrain == 1:
+    df = pd.read_csv('train.csv')
+    df = df.sort_values(by=["filename"])
+    df = df.reset_index( drop = True )
+    df.head()
 
     img = Image.open(os.path.join('train_images', df.ix[0].filename))                      # 2842.pngの読み込み
     img_cropped = img.crop((df.ix[0].left, df.ix[0].top, df.ix[0].right, df.ix[0].bottom)) # cropメソッドにより項目領域を切り取る
