@@ -19,6 +19,7 @@ fLoadEstim = 1
 
 data_final = pd.DataFrame([],columns = ['img','c0','c1','c2','c3','c4','c5','c6','c7','c8','c9'])
 
+test = pd.read_csv("test.csv")
 
 def countDown(estimator,i,files,m,filename_list):
 
@@ -47,8 +48,7 @@ if __name__ == '__main__':
     if fLoadEstim == 1:
         estimator = joblib.load('estimator.pkl')
     
-#    d = './resize_imgs3/test/*'
-    d = './resize_imgs320x240/test/*'
+    d = './train_images/*'
 
 #    files = os.listdir(d)
     files = glob.glob(d)
