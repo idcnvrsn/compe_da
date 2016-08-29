@@ -19,7 +19,7 @@ import os
 import time
 
 df = pd.read_csv('train.csv')
-df = df.sort("filename")
+df = df.sort_values(by=["filename"])
 df = df.reset_index( drop = True )
 df.head()
 
