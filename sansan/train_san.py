@@ -12,6 +12,8 @@ from sklearn.externals import joblib
 from datetime import datetime
 from evolutionary_search import EvolutionaryAlgorithmSearchCV
 from sklearn.cross_validation import StratifiedKFold
+from xgboost import XGBClassifier
+import math
 
 import os
 import time
@@ -97,7 +99,7 @@ if fMakeTrain == 1:
     X, y = load_data('train.csv', 'train_images', img_shape, orientations, pixels_per_cell, cells_per_block)
 #    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.5, random_state=1234)
     joblib.dump(X,"X.pkl")
-    joblib.dump(y,"Y.pkl")
+    joblib.dump(y,"y.pkl")
 else:
     X = joblib.load("X.pkl")
     y = joblib.load("y.pkl")
@@ -111,7 +113,8 @@ if __name__ == '__main__':
     #train
     print('Start train.\n')
     start = time.time()          
-    
+  
+#    k = ( 1 + int(math.log(len(X_train))/math.log(2)) ) #* 4    
     if fDoGrid == 1:
         param_grid = {#'bootstrap':[False],
                      #'criterion': ['entropy'],
@@ -123,8 +126,24 @@ if __name__ == '__main__':
                      "verbose":[1]}
                       
         
-        estimator = GridSearchCV(RandomForestClassifier(10),param_grid=param_grid,n_jobs=1,verbose=1)
-                                                   
+        estimator = GridSearchCV(RandomForestClassifier(10),param_grid=param_grid,cv=10,n_jobs=1,verbose=1)
+        #cv = StratifiedKFold(y_train, n_folds=3)
+        '''                                                   
+
+        param_grid = {"n_estimators":[100],
+    #                  "max_depth": [3, None],
+#                      "max_features": ['sqrt', 'None'],
+    #                  "min_samples_split": [1, 3, 10],
+    #                  "min_samples_leaf": [1, 3, 10],
+    #                  "bootstrap": [True, False],
+#                      "n_jobs": [-1],
+#                      "verbose":[1]
+                      "nthread":[-1]
+                      }
+        estimator = GridSearchCV(RandomForestClassifier(10),param_grid=param_grid,cv = StratifiedKFold(y_train, n_folds=k),n_jobs=1,verbose=1)
+        '''
+
+
         estimator.fit(X_train, y_train)
     
         elapsed_time = time.time() - start
@@ -168,13 +187,14 @@ if __name__ == '__main__':
         print(estimator.best_score_)
         print(estimator.best_params_)
         train_score = estimator.best_score_
-        train_params = estimator.best_params_
+        
+    train_params = estimator.best_params_
 
     pred = estimator.best_estimator_.predict(X_test)
     print('train score',train_score)
     print('test score',accuracy_score(y_test,pred))
     print(classification_report(y_test, pred))
-    print(confusion_matrix(y_test, pred))
+#    print(confusion_matrix(y_test, pred))
     
     def mae(y, yhat):
         return np.mean(np.abs(y - yhat))
@@ -186,14 +206,14 @@ if __name__ == '__main__':
     logfilename = dir_name + '/' + 'log.txt'
     with open(logfilename, "w") as file:
         file.write(("elapsed_time:{0}".format(elapsed_time)) + "[sec]\n")
-        file.write("width:" + str(width) + " height:" + str(height) + "\n")
         file.write("train sample num:" + str(X_train.shape[0]) + '\n')
-        file.write(train_params)
+        file.write(str(train_params))
         file.write('\n')
         file.write('train_score:'+ str(train_score) + '\n')
-        file.write('test score:' + str(accuracy_score(y_test,pred)) + '\n\n')
+        file.write('test score:' + str(accuracy_score(y_test,pred)) + '\n')
+        file.write('MAE:' + str(mae(y_test, pred)) + '\n\n')
         file.write(str(classification_report(y_test, pred))  + '\n')
-        file.write(str(confusion_matrix(y_test, pred)))
+#        file.write(str(confusion_matrix(y_test, pred)))
     
     joblib.dump(estimator,dir_name + '/' + 'estimator.pkl',compress=1)
 
