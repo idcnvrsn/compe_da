@@ -9,7 +9,6 @@ import time
 import numpy as np
 import pandas as pd
 from sklearn.externals import joblib
-import glob
 import os
 from skimage.feature import hog
 
@@ -19,6 +18,7 @@ from PIL import Image
 countCore = multiprocessing.cpu_count()
 parallel = 1
 fLoadEstim = 1
+fMakeTest = 0
 
 data_final = pd.DataFrame([])
 
@@ -87,12 +87,16 @@ if __name__ == '__main__':
     if fLoadEstim == 1:
         estimator = joblib.load('estimator.pkl')
 
-    img_shape = (216,72)
-    orientations = 6
-    pixels_per_cell = (12,12)
-    cells_per_block = (1, 1)
-    X = load_data('test.csv', 'test_images', img_shape, orientations, pixels_per_cell, cells_per_block)
-   
+    if fMakeTest == 1:
+        img_shape = (216,72)
+        orientations = 6
+        pixels_per_cell = (12,12)
+        cells_per_block = (1, 1)
+        X = load_data('test.csv', 'test_images', img_shape, orientations, pixels_per_cell, cells_per_block)
+        joblib.dump(X,"test_X.pkl")
+    else:
+        X = joblib.load("test_X.pkl")
+        
     #対象データをコア数分で分ける
     countOf1cpu = int(X.shape[0] / countCore)
     surplus = int(X.shape[0] % countCore)
