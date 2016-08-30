@@ -51,28 +51,24 @@ def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cell
             X = np.zeros((n, feature_dim))
         
         X[i,:] = np.array([img])
-    
+        
     print('Done. Took', clock()-s, 'seconds.')
     return X
 
 
-def countDown(estimator,i,files,m,filename_list):
+#def countDown(estimator,i,files,m,filename_list):
+def countDown(estimator,i,rows,m):
 
     probs = []
-    for file in files:
-        src = cv2.imread(file,0)
-    #        src = cv2.resize(src,(64,48))
-        src = src.ravel()
-        src = src[:, np.newaxis]
-        src = src.T
-    
-        prob = estimator.best_estimator_.predict_proba(src)
+    for row in rows:
+        prob = estimator.best_estimator_.predict_proba(row)
         print(i,prob)
-        probs.append(prob.tolist()[0])
+#        probs.append(prob.tolist()[0])
+        probs.append(prob)
 
     m.append(probs)
-    dfile = [os.path.basename(file) for file in files]
-    filename_list.append(dfile)
+#    dfile = [os.path.basename(file) for file in files]
+#    filename_list.append(dfile)
 
     print('end',str(i))
 
@@ -80,7 +76,7 @@ if __name__ == '__main__':
     
     start_time = time.time()          
 
-    if fLoadEstim == 0:
+    if fLoadEstim == 1:
         estimator = joblib.load('estimator.pkl')
 
     img_shape = (216,72)
@@ -88,22 +84,59 @@ if __name__ == '__main__':
     pixels_per_cell = (12,12)
     cells_per_block = (1, 1)
     X = load_data('test.csv', 'test_images', img_shape, orientations, pixels_per_cell, cells_per_block)
-     
-
-    
-#    files = os.listdir(d)
-#    files = glob.glob(d)
-    
+   
     #対象データをコア数分で分ける
-    countOf1cpu = int(test_csv.shape[0] / countCore)
-    surplus = int(test_csv.shape[0] % countCore)
+    countOf1cpu = int(X.shape[0] / countCore)
+    surplus = int(X.shape[0] % countCore)
     
     lists = []
     for i in range(countCore):
         start = countOf1cpu*i
         end = countOf1cpu*i + countOf1cpu
-        lists.append(test_csv[start:end])
-    lists[countCore-1] = pd.concat([lists[countCore-1],test_csv[end:end+surplus]])
+        lists.append(X[start:end])
+    lists[countCore-1] = np.vstack([lists[countCore-1],X[end:end+surplus]])
+    
+    manager = Manager()
+    ms = [manager.list() for i in range(countCore)]
+    if parallel == 0: 
+        countDown(estimator,i[0],lists[0]) 
+    else:
+        jobs = [Process(target=countDown, args=(estimator,j,lists[j],ms[j],)) for j in range(countCore)]
+         
+        start_time = time.time()
+        for j in jobs:
+            j.start()
+         
+        for j in jobs:
+            j.join()
+        
+        for i in range(countCore):
+#            print(ms[i])
+
+            
+            probs = ms[i][0]
+            df_probs = pd.DataFrame(probs)
+            
+            data_final = pd.concat([data_final,df_probs])
+
+        data_final.to_csv('submission.csv')#,index=False)
+
+     
+    elapsed_time = time.time() - start_time
+    print( ("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+'''
+    
     
     #画像を読み込み
     
@@ -113,7 +146,7 @@ if __name__ == '__main__':
     final_list = file_lists[-1]
     final_list = final_list + files[-(len(files) % countCore):]
     file_lists[-1] = final_list
-     
+    
     manager = Manager()
     ms = [manager.list() for i in range(countCore)]
     filename_lists = [manager.list() for i in range(countCore)]
@@ -147,3 +180,4 @@ if __name__ == '__main__':
      
     elapsed_time = time.time() - start_time
     print( ("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
+'''
