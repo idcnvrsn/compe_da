@@ -25,10 +25,8 @@ data_final = pd.DataFrame([])
 test_csv = pd.read_csv("test.csv")
 
 def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cells_per_block):
-    classes = ['company_name', 'full_name', 'position_name', 'address', 'phone_number', 'fax', 'mobile', 'email', 'url']
     df = pd.read_csv(file_name)
     n = len(df)
-    Y = np.zeros((n, len(classes)))
     print('loading...')
     s = clock()
     for i, row in df.iterrows():
@@ -53,11 +51,9 @@ def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cell
             X = np.zeros((n, feature_dim))
         
         X[i,:] = np.array([img])
-        y = list(row[classes])
-        Y[i,:] = np.array(y)
     
     print('Done. Took', clock()-s, 'seconds.')
-    return X, Y
+    return X
 
 
 def countDown(estimator,i,files,m,filename_list):
@@ -87,16 +83,31 @@ if __name__ == '__main__':
     if fLoadEstim == 0:
         estimator = joblib.load('estimator.pkl')
 
+    img_shape = (216,72)
+    orientations = 6
+    pixels_per_cell = (12,12)
+    cells_per_block = (1, 1)
+    X = load_data('test.csv', 'test_images', img_shape, orientations, pixels_per_cell, cells_per_block)
      
 
     
 #    files = os.listdir(d)
-    files = glob.glob(d)
+#    files = glob.glob(d)
     
     #対象データをコア数分で分ける
     countOf1cpu = int(test_csv.shape[0] / countCore)
+    surplus = int(test_csv.shape[0] % countCore)
     
-    file_lists = []
+    lists = []
+    for i in range(countCore):
+        start = countOf1cpu*i
+        end = countOf1cpu*i + countOf1cpu
+        lists.append(test_csv[start:end])
+    lists[countCore-1] = pd.concat([lists[countCore-1],test_csv[end:end+surplus]])
+    
+    #画像を読み込み
+    
+    lists = []
     for i in range(0,countCore):
         file_lists.append( files[countOf1cpu*i : countOf1cpu*i + countOf1cpu])
     final_list = file_lists[-1]
