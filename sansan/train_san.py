@@ -104,7 +104,7 @@ else:
     X = joblib.load("X.pkl")
     y = joblib.load("y.pkl")
 
-X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.5, random_state=1234)
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.7, random_state=1234)
 print('学習データの数:', len(X_train))
 print('検証データの数:', len(X_test))
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
                      #'max_depth': [19],
                      #'max_features': [100],
                      #'min_samples_split': [3],
-                     'n_estimators': [200],
+                     'n_estimators': [150],
                      'n_jobs': [-1],
                      "verbose":[1]}
                       
