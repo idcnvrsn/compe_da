@@ -104,7 +104,7 @@ else:
     X = joblib.load("X.pkl")
     y = joblib.load("y.pkl")
 
-X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.7, random_state=1234)
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.3, random_state=1234)
 print('学習データの数:', len(X_train))
 print('検証データの数:', len(X_test))
 
