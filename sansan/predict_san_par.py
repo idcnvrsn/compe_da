@@ -61,14 +61,14 @@ def countDown(estimator,i,rows,m):
 
     probs = []
     for row in rows:
-        prob = estimator.best_estimator_.predict_proba(row)
+#        print(row.shape)
+        
+        prob = estimator.best_estimator_.predict_proba(row.reshape(1,-1))
         print(i,prob)
 #        probs.append(prob.tolist()[0])
         probs.append(prob)
 
     m.append(probs)
-#    dfile = [os.path.basename(file) for file in files]
-#    filename_list.append(dfile)
 
     print('end',str(i))
 
@@ -115,11 +115,13 @@ if __name__ == '__main__':
 
             
             probs = ms[i][0]
-            df_probs = pd.DataFrame(probs)
+            probs_formated = [prob[0][1] for prob in probs[0]]
+            df_probs = pd.DataFrame(np.array(probs_formated).reshape(1,-1))
             
             data_final = pd.concat([data_final,df_probs])
 
-        data_final.to_csv('submission.csv')#,index=False)
+        data_final = data_final.reset_index( drop = True )
+        data_final.to_csv('submission.csv',header=False)#,index=False)
 
      
     elapsed_time = time.time() - start_time
