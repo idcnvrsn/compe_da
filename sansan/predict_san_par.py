@@ -17,7 +17,7 @@ from time import clock
 from PIL import Image
 
 countCore = multiprocessing.cpu_count()
-parallel = 1
+parallel = 0
 fLoadEstim = 1
 
 data_final = pd.DataFrame([])
@@ -51,6 +51,10 @@ def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cell
             X = np.zeros((n, feature_dim))
         
         X[i,:] = np.array([img])
+    
+        if i == 10:
+            break
+    X = X[:10]
         
     print('Done. Took', clock()-s, 'seconds.')
     return X
@@ -64,9 +68,13 @@ def countDown(estimator,i,rows,m):
 #        print(row.shape)
         
         prob = estimator.best_estimator_.predict_proba(row.reshape(1,-1))
-        print(i,prob)
+        print(i)
 #        probs.append(prob.tolist()[0])
-        probs.append(prob)
+#        for p in prob:
+#            print(p[0][1])
+        
+        probs.append([p[0][1] for p in prob])
+#        probs.append(prob)
 
     m.append(probs)
 
@@ -99,7 +107,7 @@ if __name__ == '__main__':
     manager = Manager()
     ms = [manager.list() for i in range(countCore)]
     if parallel == 0: 
-        countDown(estimator,i[0],lists[0]) 
+        countDown(estimator,i,lists[0],ms[0]) 
     else:
         jobs = [Process(target=countDown, args=(estimator,j,lists[j],ms[j],)) for j in range(countCore)]
          
@@ -115,10 +123,12 @@ if __name__ == '__main__':
 
             
             probs = ms[i][0]
-            probs_formated = [prob[0][1] for prob in probs[0]]
-            df_probs = pd.DataFrame(np.array(probs_formated).reshape(1,-1))
+            print(probs[0])
+#            probs_formated = [prob[0][1] for prob in probs[0]]
+#            df_probs = pd.DataFrame(np.array(probs_formated).reshape(1,-1))
+            print(ms[i][0])
             
-            data_final = pd.concat([data_final,df_probs])
+#            data_final = pd.concat([data_final,df_probs])
 
         data_final = data_final.reset_index( drop = True )
         data_final.to_csv('submission.csv',header=False)#,index=False)
