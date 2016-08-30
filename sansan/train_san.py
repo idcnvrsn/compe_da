@@ -111,12 +111,12 @@ print('検証データの数:', len(X_test))
 if __name__ == '__main__':
 
     #train
+
     print('Start train.\n')
     start = time.time()          
   
 #    k = ( 1 + int(math.log(len(X_train))/math.log(2)) ) #* 4    
     if fDoGrid == 1:
-        '''
         param_grid = {#'bootstrap':[False],
                      #'criterion': ['entropy'],
                      #'max_depth': [19],
@@ -143,7 +143,7 @@ if __name__ == '__main__':
                       "nthread":[-1]
                       }
         estimator = GridSearchCV(XGBClassifier(10),param_grid=param_grid,cv = 10,n_jobs=1,verbose=1)
-
+        '''
 
 
         estimator.fit(X_train, y_train)

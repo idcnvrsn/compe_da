@@ -11,10 +11,7 @@ import pandas as pd
 from sklearn.externals import joblib
 import glob
 import os
-
-from sklearn.externals import joblib
-
-import os
+from skimage.feature import hog
 
 from time import clock
 from PIL import Image
@@ -23,9 +20,45 @@ countCore = multiprocessing.cpu_count()
 parallel = 1
 fLoadEstim = 1
 
-data_final = pd.DataFrame([],columns = ['img','c0','c1','c2','c3','c4','c5','c6','c7','c8','c9'])
+data_final = pd.DataFrame([])
 
-test = pd.read_csv("test.csv")
+test_csv = pd.read_csv("test.csv")
+
+def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cells_per_block):
+    classes = ['company_name', 'full_name', 'position_name', 'address', 'phone_number', 'fax', 'mobile', 'email', 'url']
+    df = pd.read_csv(file_name)
+    n = len(df)
+    Y = np.zeros((n, len(classes)))
+    print('loading...')
+    s = clock()
+    for i, row in df.iterrows():
+        f, l, t, r, b = row.filename, row.left, row.top, row.right, row.bottom
+        print(i,f)
+        img = Image.open(os.path.join(img_dir, f)).crop((l,t,r,b)) # 項目領域画像を切り出す
+        if img.size[0]<img.size[1]:                                # 縦長の画像に関しては90度回転して横長の画像に統一する
+            img = img.transpose(Image.ROTATE_90)
+        
+        # preprocess
+        img_gray = img.convert('L')
+        img_gray = np.array(img_gray.resize(img_shape))/255.       # img_shapeに従った大きさにそろえる
+
+
+        # feature extraction
+        img = np.array(hog(img_gray,orientations = orientations,
+                           pixels_per_cell = pixels_per_cell,
+                           cells_per_block = cells_per_block))
+        if i == 0:
+            feature_dim = len(img)
+            print('feature dim:', feature_dim)
+            X = np.zeros((n, feature_dim))
+        
+        X[i,:] = np.array([img])
+        y = list(row[classes])
+        Y[i,:] = np.array(y)
+    
+    print('Done. Took', clock()-s, 'seconds.')
+    return X, Y
+
 
 def countDown(estimator,i,files,m,filename_list):
 
@@ -51,16 +84,18 @@ if __name__ == '__main__':
     
     start_time = time.time()          
 
-    if fLoadEstim == 1:
+    if fLoadEstim == 0:
         estimator = joblib.load('estimator.pkl')
-    
-    d = './train_images/*'
 
+     
+
+    
 #    files = os.listdir(d)
     files = glob.glob(d)
     
     #対象データをコア数分で分ける
-    countOf1cpu = int(len(files) / countCore)
+    countOf1cpu = int(test_csv.shape[0] / countCore)
+    
     file_lists = []
     for i in range(0,countCore):
         file_lists.append( files[countOf1cpu*i : countOf1cpu*i + countOf1cpu])
