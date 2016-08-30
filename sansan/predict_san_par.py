@@ -17,7 +17,7 @@ from time import clock
 from PIL import Image
 
 countCore = multiprocessing.cpu_count()
-parallel = 0
+parallel = 1
 fLoadEstim = 1
 
 data_final = pd.DataFrame([])
@@ -52,9 +52,9 @@ def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cell
         
         X[i,:] = np.array([img])
     
-        if i == 10:
-            break
-    X = X[:10]
+#        if i == 100:
+#            break
+#    X = X[:100]
         
     print('Done. Took', clock()-s, 'seconds.')
     return X
@@ -64,11 +64,11 @@ def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cell
 def countDown(estimator,i,rows,m):
 
     probs = []
-    for row in rows:
+    for j,row in enumerate(rows):
+        print("process",j)
 #        print(row.shape)
         
         prob = estimator.best_estimator_.predict_proba(row.reshape(1,-1))
-        print(i)
 #        probs.append(prob.tolist()[0])
 #        for p in prob:
 #            print(p[0][1])
@@ -123,12 +123,14 @@ if __name__ == '__main__':
 
             
             probs = ms[i][0]
-            print(probs[0])
+#            print(probs)
 #            probs_formated = [prob[0][1] for prob in probs[0]]
 #            df_probs = pd.DataFrame(np.array(probs_formated).reshape(1,-1))
-            print(ms[i][0])
+#            print(ms[i][0])
+
+            df_probs = pd.DataFrame(probs)
             
-#            data_final = pd.concat([data_final,df_probs])
+            data_final = pd.concat([data_final,df_probs])
 
         data_final = data_final.reset_index( drop = True )
         data_final.to_csv('submission.csv',header=False)#,index=False)
