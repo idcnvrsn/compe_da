@@ -14,6 +14,7 @@ from evolutionary_search import EvolutionaryAlgorithmSearchCV
 from sklearn.cross_validation import StratifiedKFold
 from xgboost import XGBClassifier
 import math
+from sklearn.metrics import mean_absolute_error
 
 import os
 import time
@@ -23,8 +24,7 @@ from time import clock
 from PIL import Image
 
 fMakeTrain = 0
-fDoGrid = 1
-fDoEvol = 0
+fDoMode = 0
 
 if fMakeTrain == 1:
     df = pd.read_csv('train.csv')
@@ -104,7 +104,7 @@ else:
     X = joblib.load("X.pkl")
     y = joblib.load("y.pkl")
 
-X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.3, random_state=1234)
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2, random_state=1234)
 print('学習データの数:', len(X_train))
 print('検証データの数:', len(X_test))
 
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     start = time.time()          
   
 #    k = ( 1 + int(math.log(len(X_train))/math.log(2)) ) #* 4    
-    if fDoGrid == 1:
+    if fDoMode == 0:
         param_grid = {#'bootstrap':[False],
                      #'criterion': ['entropy'],
                      #'max_depth': [19],
@@ -156,7 +156,7 @@ if __name__ == '__main__':
 
 #        joblib.dump(estimator,'estimator.pkl',compress=1)
 
-    if fDoEvol == 1:
+    if fDoMode == 1:
         lmax_features = list(range(10,500))
 #        lmax_features.append('sqrt')
 #        lmax_features.append('log2')
