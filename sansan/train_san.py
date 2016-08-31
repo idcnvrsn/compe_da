@@ -12,7 +12,7 @@ from sklearn.externals import joblib
 from datetime import datetime
 from evolutionary_search import EvolutionaryAlgorithmSearchCV
 from sklearn.cross_validation import StratifiedKFold
-from xgboost import XGBClassifier
+#from xgboost import XGBClassifier
 import math
 from sklearn.metrics import mean_absolute_error
 
@@ -24,7 +24,7 @@ from time import clock
 from PIL import Image
 
 fMakeTrain = 0
-fDoMode = 0
+fDoMode = 1
 
 if fMakeTrain == 1:
     df = pd.read_csv('train.csv')
@@ -122,7 +122,7 @@ if __name__ == '__main__':
                      #'max_depth': [19],
                      #'max_features': [100],
                      #'min_samples_split': [3],
-                     'n_estimators': [150],
+                     'n_estimators': [500],
                      'n_jobs': [-1],
                      "verbose":[1]}
                       
@@ -173,13 +173,13 @@ if __name__ == '__main__':
 
         estimator = EvolutionaryAlgorithmSearchCV(estimator=RandomForestClassifier(10),
                                    params=param_grid,
-                                   scoring="log_loss",
-                                   cv=StratifiedKFold(y_train, n_folds=10),
+                                   scoring="mean_absolute_error",
+                                   cv=10,#StratifiedKFold(y_train, n_folds=10),
                                    verbose=True,
-                                   population_size=80,
+                                   population_size=50,
                                    gene_mutation_prob=0.10,
                                    tournament_size=3,
-                                   generations_number=15,
+                                   generations_number=10,
                                    n_jobs=1)
                                    
         estimator.fit(X_train, y_train)
@@ -200,9 +200,18 @@ if __name__ == '__main__':
     
     def mae(y, yhat):
         return np.mean(np.abs(y - yhat))
-    
     print('MAE:', mae(y_test, pred))
     
+    '''
+    pred_proba = []
+    for r in X_test:
+        print(r)
+        raw_prob = estimator.best_estimator_.predict_proba(r.reshape(1,-1))
+        pred_proba.append([p[0][1] for p in raw_prob])
+    
+    print('proba MAE:', mae(y_test, pred_proba))
+    '''
+
     dir_name = datetime.now().strftime("%Y%m%d_%H%M%S") 
     os.mkdir(dir_name)
     logfilename = dir_name + '/' + 'log.txt'
