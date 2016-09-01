@@ -46,6 +46,8 @@ import time
 from time import clock
 from PIL import Image
 from PIL import ImageOps
+from skimage.transform import resize
+from skimage import io
 
 fMakeTrain = 1
 fDoMode = 0
@@ -72,13 +74,15 @@ if fMakeTrain == 1:
 #            img_gray = img.convert('L')
 #            img_gray = np.array(img_gray.resize(img_shape))/255.       # img_shapeに従った大きさにそろえる
             img_gray = np.array(img)
+            img_gray =resize(img_gray,(50,300))
+#            io.imsave("img"+str(i)+".bmp",img_gray)
     
             # feature extraction
 #            img = np.array(hog(img_gray,orientations = orientations,
 #                               pixels_per_cell = pixels_per_cell,
 #                               cells_per_block = cells_per_block))   
             img_gray = img_gray.reshape(1,-1)
-            print(img_gray.shape)
+#            print(img_gray.shape)
             if i == 0:
 #                feature_dim = len(img_gray)
                 feature_dim = img_gray.shape[0] * img_gray.shape[1]
