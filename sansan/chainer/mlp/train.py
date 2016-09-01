@@ -126,39 +126,6 @@ if fMakeTrain == 1:
 else:
     X = joblib.load("../../X.pkl")
     y = joblib.load("../../y.pkl")
-    
-ys = np.empty((9,y.shape[0]),dtype=np.uint8)
-
-#9クラスについて1,0だけのシンプルなyを作る
-for i in range(0,9):
-    #正例と負例を集計
-    for j,y_row in enumerate(y):
-        print("サンプル",str(j))
-
-        if y_row[i] == 1:
-            ys[i,j] = 1
-        else:
-            ys[i,j] = 0
-
-#9クラスについてそれとそれ以外の2クラス分類器を作る。合計9個分類器を作る。
-
-
-X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.8, random_state=1234)
-print('学習データの数:', len(X_train))
-print('検証データの数:', len(X_test))
-
-
-aaa = np.array([0,1,2,3,4])
-a,b = np.split(aaa,   [3])
-
-
-    
-
-    #training
-
-    #evaluation
-
-
 
 X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.8, random_state=1234)
 print('学習データの数:', len(X_train))
@@ -168,92 +135,85 @@ batchsize = 100
 n_epoch = 20
 n_units = 1000
 
-# Prepare dataset
-'''
-print('load ')
-mnist = data.load_mnist_data()
-mnist['data'] = mnist['data'].astype(np.float32)
-mnist['data'] /= 255
-mnist['target'] = mnist['target'].astype(np.int32)
+#9クラス分の2分類器を学習と評価
+for i in range(0,1):
+    #クラスに属する:1,属さない:0のデータで2分類器学習
+    y_train_s = y_train[:,i]
 
-N = 60000
-x_train, x_test = np.split(mnist['data'],   [N])
-y_train, y_test = np.split(mnist['target'], [N])
-'''
-N_test = y_test.size
-
-N = X_train.shape[0]
-
-# Prepare multi-layer perceptron model, defined in net.py
-if args.net == 'simple':
-    model = L.Classifier(net.MnistMLP(784, n_units, 10))
-    if args.gpu >= 0:
-        cuda.get_device(args.gpu).use()
-        model.to_gpu()
-    xp = np if args.gpu < 0 else cuda.cupy
-elif args.net == 'parallel':
-    cuda.check_cuda_available()
-    model = L.Classifier(net.MnistMLPParallel(784, n_units, 10))
-    xp = cuda.cupy
-
-# Setup optimizer
-optimizer = optimizers.Adam()
-optimizer.setup(model)
-
-# Init/Resume
-if args.initmodel:
-    print('Load model from', args.initmodel)
-    serializers.load_npz(args.initmodel, model)
-if args.resume:
-    print('Load optimizer state from', args.resume)
-    serializers.load_npz(args.resume, optimizer)
-
-# Learning loop
-for epoch in six.moves.range(1, n_epoch + 1):
-    print('epoch', epoch)
-
-    # training
-    perm = np.random.permutation(N)
-    sum_accuracy = 0
-    sum_loss = 0
-    for i in six.moves.range(0, N, batchsize):
-        x = chainer.Variable(xp.asarray(X_train[perm[i:i + batchsize]]))
-        t = chainer.Variable(xp.asarray(y_train[perm[i:i + batchsize]]))
-
-        # Pass the loss function (Classifier defines it) and its arguments
-        optimizer.update(model, x, t)
-
-        if epoch == 1 and i == 0:
-            with open('graph.dot', 'w') as o:
-                g = computational_graph.build_computational_graph(
-                    (model.loss, ), remove_split=True)
-                o.write(g.dump())
-            print('graph generated')
-
-        sum_loss += float(model.loss.data) * len(t.data)
-        sum_accuracy += float(model.accuracy.data) * len(t.data)
-
-    print('train mean loss={}, accuracy={}'.format(
-        sum_loss / N, sum_accuracy / N))
-
-    # evaluation
-    sum_accuracy = 0
-    sum_loss = 0
-    for i in six.moves.range(0, N_test, batchsize):
-        x = chainer.Variable(xp.asarray(X_test[i:i + batchsize]),
-                             volatile='on')
-        t = chainer.Variable(xp.asarray(y_test[i:i + batchsize]),
-                             volatile='on')
-        loss = model(x, t)
-        sum_loss += float(loss.data) * len(t.data)
-        sum_accuracy += float(model.accuracy.data) * len(t.data)
-
-    print('test  mean loss={}, accuracy={}'.format(
-        sum_loss / N_test, sum_accuracy / N_test))
-
-# Save the model and the optimizer
-print('save the model')
-serializers.save_npz('mlp.model', model)
-print('save the optimizer')
-serializers.save_npz('mlp.state', optimizer)
+    N_test = y_test.size
+    
+    N = X_train.shape[0]
+    
+    # Prepare multi-layer perceptron model, defined in net.py
+    if args.net == 'simple':
+        model = L.Classifier(net.MnistMLP(784, n_units, 10))
+        if args.gpu >= 0:
+            cuda.get_device(args.gpu).use()
+            model.to_gpu()
+        xp = np if args.gpu < 0 else cuda.cupy
+    elif args.net == 'parallel':
+        cuda.check_cuda_available()
+        model = L.Classifier(net.MnistMLPParallel(784, n_units, 10))
+        xp = cuda.cupy
+    
+    # Setup optimizer
+    optimizer = optimizers.Adam()
+    optimizer.setup(model)
+    
+    # Init/Resume
+    if args.initmodel:
+        print('Load model from', args.initmodel)
+        serializers.load_npz(args.initmodel, model)
+    if args.resume:
+        print('Load optimizer state from', args.resume)
+        serializers.load_npz(args.resume, optimizer)
+    
+    # Learning loop
+    for epoch in six.moves.range(1, n_epoch + 1):
+        print('epoch', epoch)
+    
+        # training
+        perm = np.random.permutation(N)
+        sum_accuracy = 0
+        sum_loss = 0
+        for i in six.moves.range(0, N, batchsize):
+            x = chainer.Variable(xp.asarray(X_train[perm[i:i + batchsize]]))
+            t = chainer.Variable(xp.asarray(y_train_s[perm[i:i + batchsize]]))
+    
+            # Pass the loss function (Classifier defines it) and its arguments
+            optimizer.update(model, x, t)
+    
+            if epoch == 1 and i == 0:
+                with open('graph' + str(i) + '.dot', 'w') as o:
+                    g = computational_graph.build_computational_graph(
+                        (model.loss, ), remove_split=True)
+                    o.write(g.dump())
+                print('graph' + str(i) + ' generated')
+    
+            sum_loss += float(model.loss.data) * len(t.data)
+            sum_accuracy += float(model.accuracy.data) * len(t.data)
+    
+        print('train' + str(i) + ' mean loss={}, accuracy={}'.format(
+            sum_loss / N, sum_accuracy / N))
+    
+        # evaluation
+        sum_accuracy = 0
+        sum_loss = 0
+        for i in six.moves.range(0, N_test, batchsize):
+            x = chainer.Variable(xp.asarray(X_test[i:i + batchsize]),
+                                 volatile='on')
+            t = chainer.Variable(xp.asarray(y_test[i:i + batchsize]),
+                                 volatile='on')
+            loss = model(x, t)
+            sum_loss += float(loss.data) * len(t.data)
+            sum_accuracy += float(model.accuracy.data) * len(t.data)
+    
+        print('test' + str(i) + '  mean loss={}, accuracy={}'.format(
+            sum_loss / N_test, sum_accuracy / N_test))
+    
+    # Save the model and the optimizer
+    print('save the model')
+    serializers.save_npz('mlp' + str(i) + '.model', model)
+    print('save the optimizer')
+    serializers.save_npz('mlp' + str(i) + '.state', optimizer)
 
