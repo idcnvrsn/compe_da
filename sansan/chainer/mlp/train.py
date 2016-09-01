@@ -45,6 +45,7 @@ import time
 
 from time import clock
 from PIL import Image
+from PIL import ImageOps
 
 fMakeTrain = 1
 fDoMode = 0
@@ -66,21 +67,24 @@ if fMakeTrain == 1:
                 img = img.transpose(Image.ROTATE_90)
             
             # preprocess
-            img_gray = img.convert('L')
-            img_gray = np.array(img_gray.resize(img_shape))/255.       # img_shapeに従った大きさにそろえる
-    
+            img = ImageOps.grayscale(img)
+
+#            img_gray = img.convert('L')
+#            img_gray = np.array(img_gray.resize(img_shape))/255.       # img_shapeに従った大きさにそろえる
+            img_gray = np.array(img)
     
             # feature extraction
 #            img = np.array(hog(img_gray,orientations = orientations,
 #                               pixels_per_cell = pixels_per_cell,
 #                               cells_per_block = cells_per_block))   
             img_gray = img_gray.reshape(1,-1)
-
+            print(img_gray.shape)
             if i == 0:
 #                feature_dim = len(img_gray)
                 feature_dim = img_gray.shape[0] * img_gray.shape[1]
                 print('feature dim:', feature_dim)
                 X = np.zeros((n, feature_dim))
+                print(X.shape)
             
 #            X[i,:] = np.array([img_gray])
             X[i,:] = img_gray.copy()
