@@ -12,7 +12,7 @@ import chainer.links as L
 from chainer import optimizers
 from chainer import serializers
 
-import data
+#import data
 import net
 
 
@@ -58,7 +58,7 @@ if fMakeTrain == 1:
         classes = ['company_name', 'full_name', 'position_name', 'address', 'phone_number', 'fax', 'mobile', 'email', 'url']
         df = pd.read_csv(file_name)
         n = len(df)
-        Y = np.zeros((n, len(classes)))
+        Y = np.zeros((n, len(classes)),dtype=np.int32)
         print('loading...')
         s = clock()
         for i, row in df.iterrows():
@@ -87,7 +87,7 @@ if fMakeTrain == 1:
 #                feature_dim = len(img_gray)
                 feature_dim = img_gray.shape[0] * img_gray.shape[1]
                 print('feature dim:', feature_dim)
-                X = np.zeros((n, feature_dim))
+                X = np.zeros((n, feature_dim),dtype=np.float32)
                 print(X.shape)
             
 #            X[i,:] = np.array([img_gray])
@@ -123,21 +123,22 @@ n_units = 1000
 for i in range(0,1):
     #クラスに属する:1,属さない:0のデータで2分類器学習
     y_train_s = y_train[:,i]
+    y_test_s = y_test[:,i]
 
-    N_test = y_test.size
+    N_test = X_test.shape[0]
     
     N = X_train.shape[0]
     
     # Prepare multi-layer perceptron model, defined in net.py
     if args.net == 'simple':
-        model = L.Classifier(net.MnistMLP(784, n_units, 10))
+        model = L.Classifier(net.MnistMLP(15000, n_units, 10))
         if args.gpu >= 0:
             cuda.get_device(args.gpu).use()
             model.to_gpu()
         xp = np if args.gpu < 0 else cuda.cupy
     elif args.net == 'parallel':
         cuda.check_cuda_available()
-        model = L.Classifier(net.MnistMLPParallel(784, n_units, 10))
+        model = L.Classifier(net.MnistMLPParallel(15000, n_units, 10))
         xp = cuda.cupy
     
     # Setup optimizer
@@ -186,7 +187,7 @@ for i in range(0,1):
         for i in six.moves.range(0, N_test, batchsize):
             x = chainer.Variable(xp.asarray(X_test[i:i + batchsize]),
                                  volatile='on')
-            t = chainer.Variable(xp.asarray(y_test[i:i + batchsize]),
+            t = chainer.Variable(xp.asarray(y_test_s[i:i + batchsize]),
                                  volatile='on')
             loss = model(x, t)
             sum_loss += float(loss.data) * len(t.data)
