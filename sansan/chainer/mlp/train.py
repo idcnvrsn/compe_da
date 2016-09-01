@@ -50,34 +50,6 @@ fMakeTrain = 1
 fDoMode = 0
 
 if fMakeTrain == 1:
-    df = pd.read_csv('../../train.csv')
-    df = df.sort_values(by=["filename"])
-    df = df.reset_index( drop = True )
-    df.head()
-
-    img = Image.open(os.path.join('../../train_images', df.ix[0].filename))                      # 2842.pngの読み込み
-    img_cropped = img.crop((df.ix[0].left, df.ix[0].top, df.ix[0].right, df.ix[0].bottom)) # cropメソッドにより項目領域を切り取る
-    img_cropped
-    
-    img_2 = Image.open(os.path.join('../../train_images', df.ix[2].filename))
-    img_2_cropped = img_2.crop((df.ix[2].left, df.ix[2].top, df.ix[2].right, df.ix[2].bottom))
-    img_2_cropped
-    
-    img_cropped = img_cropped.convert('L') # convertメソッドによりグレースケール化
-    print(img_cropped.size)
-    
-    img_resized = img_cropped.resize((216, 72))  # resizeメソッドにより画像の大きさを変える
-    img_resized
-    
-    img_array = np.array(img_resized)
-    print(img_array.shape)
-    
-    from skimage.feature import hog
-    
-    img_data = np.array(hog(img_array,orientations = 6,
-                            pixels_per_cell = (12, 12),
-                            cells_per_block = (1, 1)))     
-    print(img_data.shape)
     
     def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cells_per_block):
         classes = ['company_name', 'full_name', 'position_name', 'address', 'phone_number', 'fax', 'mobile', 'email', 'url']
