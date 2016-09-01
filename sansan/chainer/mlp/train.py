@@ -73,14 +73,17 @@ if fMakeTrain == 1:
             # feature extraction
 #            img = np.array(hog(img_gray,orientations = orientations,
 #                               pixels_per_cell = pixels_per_cell,
-#                               cells_per_block = cells_per_block))
-    
+#                               cells_per_block = cells_per_block))   
+            img_gray = img_gray.reshape(1,-1)
+
             if i == 0:
-                feature_dim = len(img_gray)
+#                feature_dim = len(img_gray)
+                feature_dim = img_gray.shape[0] * img_gray.shape[1]
                 print('feature dim:', feature_dim)
                 X = np.zeros((n, feature_dim))
             
-            X[i,:] = np.array([img_gray])
+#            X[i,:] = np.array([img_gray])
+            X[i,:] = img_gray.copy()
             y = list(row[classes])
             Y[i,:] = np.array(y)
         
