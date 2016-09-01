@@ -1,9 +1,4 @@
 ﻿# -*- coding: utf-8 -*-
-"""Chainer example: train a multi-layer perceptron on MNIST
-
-This is a minimal example to write a feed-forward net.
-
-"""
 from __future__ import print_function
 import argparse
 
@@ -32,12 +27,150 @@ parser.add_argument('--gpu', '-g', default=-1, type=int,
                     help='GPU ID (negative value indicates CPU)')
 args = parser.parse_args()
 
+# -*- coding: utf-8 -*-
+import numpy as np
+import pandas as pd
+from sklearn.cross_validation import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import log_loss
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+from sklearn.externals import joblib
+from datetime import datetime
+import math
+from sklearn.metrics import mean_absolute_error
+
+import os
+import time
+
+from time import clock
+from PIL import Image
+
+fMakeTrain = 0
+fDoMode = 0
+
+if fMakeTrain == 1:
+    df = pd.read_csv('train.csv')
+    df = df.sort_values(by=["filename"])
+    df = df.reset_index( drop = True )
+    df.head()
+
+    img = Image.open(os.path.join('train_images', df.ix[0].filename))                      # 2842.pngの読み込み
+    img_cropped = img.crop((df.ix[0].left, df.ix[0].top, df.ix[0].right, df.ix[0].bottom)) # cropメソッドにより項目領域を切り取る
+    img_cropped
+    
+    img_2 = Image.open(os.path.join('train_images', df.ix[2].filename))
+    img_2_cropped = img_2.crop((df.ix[2].left, df.ix[2].top, df.ix[2].right, df.ix[2].bottom))
+    img_2_cropped
+    
+    img_cropped = img_cropped.convert('L') # convertメソッドによりグレースケール化
+    print(img_cropped.size)
+    
+    img_resized = img_cropped.resize((216, 72))  # resizeメソッドにより画像の大きさを変える
+    img_resized
+    
+    img_array = np.array(img_resized)
+    print(img_array.shape)
+    
+    from skimage.feature import hog
+    
+    img_data = np.array(hog(img_array,orientations = 6,
+                            pixels_per_cell = (12, 12),
+                            cells_per_block = (1, 1)))     
+    print(img_data.shape)
+    
+    def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cells_per_block):
+        classes = ['company_name', 'full_name', 'position_name', 'address', 'phone_number', 'fax', 'mobile', 'email', 'url']
+        df = pd.read_csv(file_name)
+        n = len(df)
+        Y = np.zeros((n, len(classes)))
+        print('loading...')
+        s = clock()
+        for i, row in df.iterrows():
+            f, l, t, r, b = row.filename, row.left, row.top, row.right, row.bottom
+            print(i,f)
+            img = Image.open(os.path.join(img_dir, f)).crop((l,t,r,b)) # 項目領域画像を切り出す
+            if img.size[0]<img.size[1]:                                # 縦長の画像に関しては90度回転して横長の画像に統一する
+                img = img.transpose(Image.ROTATE_90)
+            
+            # preprocess
+            img_gray = img.convert('L')
+            img_gray = np.array(img_gray.resize(img_shape))/255.       # img_shapeに従った大きさにそろえる
+    
+    
+            # feature extraction
+            img = np.array(hog(img_gray,orientations = orientations,
+                               pixels_per_cell = pixels_per_cell,
+                               cells_per_block = cells_per_block))
+            if i == 0:
+                feature_dim = len(img)
+                print('feature dim:', feature_dim)
+                X = np.zeros((n, feature_dim))
+            
+            X[i,:] = np.array([img])
+            y = list(row[classes])
+            Y[i,:] = np.array(y)
+        
+        print('Done. Took', clock()-s, 'seconds.')
+        return X, Y
+        
+    
+    img_shape = (216,72)
+    orientations = 6
+    pixels_per_cell = (12,12)
+    cells_per_block = (1, 1)
+    X, y = load_data('train.csv', 'train_images', img_shape, orientations, pixels_per_cell, cells_per_block)
+#    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.5, random_state=1234)
+    joblib.dump(X,"X.pkl")
+    joblib.dump(y,"y.pkl")
+else:
+    X = joblib.load("../../X.pkl")
+    y = joblib.load("../../y.pkl")
+    
+ys = np.empty((9,y.shape[0]),dtype=np.uint8)
+
+#9クラスについて1,0だけのシンプルなyを作る
+for i in range(0,9):
+    #正例と負例を集計
+    for j,y_row in enumerate(y):
+        print("サンプル",str(j))
+
+        if y_row[i] == 1:
+            ys[i,j] = 1
+        else:
+            ys[i,j] = 0
+
+#9クラスについてそれとそれ以外の2クラス分類器を作る。合計9個分類器を作る。
+
+
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.8, random_state=1234)
+print('学習データの数:', len(X_train))
+print('検証データの数:', len(X_test))
+
+
+aaa = np.array([0,1,2,3,4])
+a,b = np.split(aaa,   [3])
+
+
+    
+
+    #training
+
+    #evaluation
+
+
+
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.8, random_state=1234)
+print('学習データの数:', len(X_train))
+print('検証データの数:', len(X_test))
+
 batchsize = 100
 n_epoch = 20
 n_units = 1000
 
 # Prepare dataset
-print('load MNIST dataset')
+'''
+print('load ')
 mnist = data.load_mnist_data()
 mnist['data'] = mnist['data'].astype(np.float32)
 mnist['data'] /= 255
@@ -46,7 +179,10 @@ mnist['target'] = mnist['target'].astype(np.int32)
 N = 60000
 x_train, x_test = np.split(mnist['data'],   [N])
 y_train, y_test = np.split(mnist['target'], [N])
+'''
 N_test = y_test.size
+
+N = X_train.shape[0]
 
 # Prepare multi-layer perceptron model, defined in net.py
 if args.net == 'simple':
@@ -81,7 +217,7 @@ for epoch in six.moves.range(1, n_epoch + 1):
     sum_accuracy = 0
     sum_loss = 0
     for i in six.moves.range(0, N, batchsize):
-        x = chainer.Variable(xp.asarray(x_train[perm[i:i + batchsize]]))
+        x = chainer.Variable(xp.asarray(X_train[perm[i:i + batchsize]]))
         t = chainer.Variable(xp.asarray(y_train[perm[i:i + batchsize]]))
 
         # Pass the loss function (Classifier defines it) and its arguments
@@ -104,7 +240,7 @@ for epoch in six.moves.range(1, n_epoch + 1):
     sum_accuracy = 0
     sum_loss = 0
     for i in six.moves.range(0, N_test, batchsize):
-        x = chainer.Variable(xp.asarray(x_test[i:i + batchsize]),
+        x = chainer.Variable(xp.asarray(X_test[i:i + batchsize]),
                              volatile='on')
         t = chainer.Variable(xp.asarray(y_test[i:i + batchsize]),
                              volatile='on')
