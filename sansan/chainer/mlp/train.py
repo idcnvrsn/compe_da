@@ -46,20 +46,20 @@ import time
 from time import clock
 from PIL import Image
 
-fMakeTrain = 0
+fMakeTrain = 1
 fDoMode = 0
 
 if fMakeTrain == 1:
-    df = pd.read_csv('train.csv')
+    df = pd.read_csv('../../train.csv')
     df = df.sort_values(by=["filename"])
     df = df.reset_index( drop = True )
     df.head()
 
-    img = Image.open(os.path.join('train_images', df.ix[0].filename))                      # 2842.pngの読み込み
+    img = Image.open(os.path.join('../../train_images', df.ix[0].filename))                      # 2842.pngの読み込み
     img_cropped = img.crop((df.ix[0].left, df.ix[0].top, df.ix[0].right, df.ix[0].bottom)) # cropメソッドにより項目領域を切り取る
     img_cropped
     
-    img_2 = Image.open(os.path.join('train_images', df.ix[2].filename))
+    img_2 = Image.open(os.path.join('../../train_images', df.ix[2].filename))
     img_2_cropped = img_2.crop((df.ix[2].left, df.ix[2].top, df.ix[2].right, df.ix[2].bottom))
     img_2_cropped
     
@@ -99,15 +99,16 @@ if fMakeTrain == 1:
     
     
             # feature extraction
-            img = np.array(hog(img_gray,orientations = orientations,
-                               pixels_per_cell = pixels_per_cell,
-                               cells_per_block = cells_per_block))
+#            img = np.array(hog(img_gray,orientations = orientations,
+#                               pixels_per_cell = pixels_per_cell,
+#                               cells_per_block = cells_per_block))
+    
             if i == 0:
-                feature_dim = len(img)
+                feature_dim = len(img_gray)
                 print('feature dim:', feature_dim)
                 X = np.zeros((n, feature_dim))
             
-            X[i,:] = np.array([img])
+            X[i,:] = np.array([img_gray])
             y = list(row[classes])
             Y[i,:] = np.array(y)
         
@@ -119,13 +120,13 @@ if fMakeTrain == 1:
     orientations = 6
     pixels_per_cell = (12,12)
     cells_per_block = (1, 1)
-    X, y = load_data('train.csv', 'train_images', img_shape, orientations, pixels_per_cell, cells_per_block)
+    X, y = load_data('../../train.csv', '../../train_images', img_shape, orientations, pixels_per_cell, cells_per_block)
 #    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.5, random_state=1234)
     joblib.dump(X,"X.pkl")
     joblib.dump(y,"y.pkl")
 else:
-    X = joblib.load("../../X.pkl")
-    y = joblib.load("../../y.pkl")
+    X = joblib.load("X.pkl")
+    y = joblib.load("y.pkl")
 
 X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.8, random_state=1234)
 print('学習データの数:', len(X_train))
