@@ -49,7 +49,7 @@ from PIL import ImageOps
 from skimage.transform import resize
 from skimage import io
 
-fMakeTrain = 1
+fMakeTrain = 0
 fDoMode = 0
 
 if fMakeTrain == 1:
@@ -120,10 +120,10 @@ n_epoch = 20
 n_units = 1000
 
 #9クラス分の2分類器を学習と評価
-for i in range(0,1):
+for classe in range(0,1):
     #クラスに属する:1,属さない:0のデータで2分類器学習
-    y_train_s = y_train[:,i]
-    y_test_s = y_test[:,i]
+    y_train_s = y_train[:,classe]
+    y_test_s = y_test[:,classe]
 
     N_test = X_test.shape[0]
     
@@ -169,16 +169,16 @@ for i in range(0,1):
             optimizer.update(model, x, t)
     
             if epoch == 1 and i == 0:
-                with open('graph' + str(i) + '.dot', 'w') as o:
+                with open('graph' + str(classe) + '.dot', 'w') as o:
                     g = computational_graph.build_computational_graph(
                         (model.loss, ), remove_split=True)
                     o.write(g.dump())
-                print('graph' + str(i) + ' generated')
+                print('graph' + str(classe) + ' generated')
     
             sum_loss += float(model.loss.data) * len(t.data)
             sum_accuracy += float(model.accuracy.data) * len(t.data)
     
-        print('train' + str(i) + ' mean loss={}, accuracy={}'.format(
+        print('train' + str(classe) + ' mean loss={}, accuracy={}'.format(
             sum_loss / N, sum_accuracy / N))
     
         # evaluation
@@ -193,12 +193,12 @@ for i in range(0,1):
             sum_loss += float(loss.data) * len(t.data)
             sum_accuracy += float(model.accuracy.data) * len(t.data)
     
-        print('test' + str(i) + '  mean loss={}, accuracy={}'.format(
+        print('test' + str(classe) + '  mean loss={}, accuracy={}'.format(
             sum_loss / N_test, sum_accuracy / N_test))
     
     # Save the model and the optimizer
     print('save the model')
-    serializers.save_npz('mlp' + str(i) + '.model', model)
+    serializers.save_npz('mlp' + str(classe) + '.model', model)
     print('save the optimizer')
-    serializers.save_npz('mlp' + str(i) + '.state', optimizer)
+    serializers.save_npz('mlp' + str(classe) + '.state', optimizer)
 
