@@ -134,14 +134,14 @@ for classe in range(0,9):
     
     # Prepare multi-layer perceptron model, defined in net.py
     if args.net == 'simple':
-        model = L.Classifier(net.MnistMLP(15000, n_units, 10))
+        model = L.Classifier(net.MnistMLP(15000, n_units, 9))
         if args.gpu >= 0:
             cuda.get_device(args.gpu).use()
             model.to_gpu()
         xp = np if args.gpu < 0 else cuda.cupy
     elif args.net == 'parallel':
         cuda.check_cuda_available()
-        model = L.Classifier(net.MnistMLPParallel(15000, n_units, 10))
+        model = L.Classifier(net.MnistMLPParallel(15000, n_units, 9))
         xp = cuda.cupy
     
     # Setup optimizer
@@ -202,14 +202,33 @@ for classe in range(0,9):
     models.append(model)
     
     # Save the model and the optimizer
-    print('save the model')
+    print('save the model' + str(classe))
     serializers.save_npz('mlp' + str(classe) + '.model', model)
-    print('save the optimizer')
+    print('save the optimizer' + str(classe))
     serializers.save_npz('mlp' + str(classe) + '.state', optimizer)
 
 #９個の分類器をテストデータの各行に適用
-for x in X_test:
-    for i_cls in range(9):
-        #予測
+pred = np.empty(y_test.shape,dtype=y_test.dtype)
+for i_cls in range(1):
+    print(i_cls)
+    #予測
     
+    xp = np
+    x = chainer.Variable(xp.asarray(X_test))
+    
+    pred_raw = models[i_cls].to_cpu().predictor(x)
+#        np.max(pred.data,axis=1)
+    
+    pred_bin = np.argmax(pred_raw.data,axis=1)
+    
+    pred[:,i_cls] = pred_bin
+
+print('test score',accuracy_score(y_test,pred))
+
+print(classification_report(y_test, pred))
+
+def mae(y, yhat):
+    return np.mean(np.abs(y - yhat))
+print('MAE:', mae(y_test, pred))
+
 
