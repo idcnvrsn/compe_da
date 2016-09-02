@@ -111,7 +111,7 @@ else:
     X = joblib.load("X.pkl")
     y = joblib.load("y.pkl")
 
-X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.8, random_state=1234)
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.5, random_state=1234)
 print('学習データの数:', len(X_train))
 print('検証データの数:', len(X_test))
 
@@ -134,14 +134,14 @@ for classe in range(0,9):
     
     # Prepare multi-layer perceptron model, defined in net.py
     if args.net == 'simple':
-        model = L.Classifier(net.MnistMLP(15000, n_units, 9))
+        model = L.Classifier(net.MnistMLP(15000, n_units, 2))
         if args.gpu >= 0:
             cuda.get_device(args.gpu).use()
             model.to_gpu()
         xp = np if args.gpu < 0 else cuda.cupy
     elif args.net == 'parallel':
         cuda.check_cuda_available()
-        model = L.Classifier(net.MnistMLPParallel(15000, n_units, 9))
+        model = L.Classifier(net.MnistMLPParallel(15000, n_units, 2))
         xp = cuda.cupy
     
     # Setup optimizer
@@ -208,8 +208,8 @@ for classe in range(0,9):
     serializers.save_npz('mlp' + str(classe) + '.state', optimizer)
 
 #９個の分類器をテストデータの各行に適用
-pred = np.empty(y_test.shape,dtype=y_test.dtype)
-for i_cls in range(1):
+pred = np.zeros(y_test.shape,dtype=y_test.dtype)
+for i_cls in range(9):
     print(i_cls)
     #予測
     
@@ -224,11 +224,8 @@ for i_cls in range(1):
     pred[:,i_cls] = pred_bin
 
 print('test score',accuracy_score(y_test,pred))
-
 print(classification_report(y_test, pred))
 
 def mae(y, yhat):
     return np.mean(np.abs(y - yhat))
 print('MAE:', mae(y_test, pred))
-
-
