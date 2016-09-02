@@ -26,10 +26,7 @@ import net
 ## データの読み込み
 data_final = pd.DataFrame([])
 
-test_csv = pd.read_csv("test.csv")
-
 fMakeTest = 0
-
 if fMakeTest == 1:
     
     def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cells_per_block):
@@ -77,7 +74,7 @@ if fMakeTest == 1:
     orientations = 6
     pixels_per_cell = (12,12)
     cells_per_block = (1, 1)
-    X = load_data('../../train.csv', '../../train_images', img_shape, orientations, pixels_per_cell, cells_per_block)
+    X = load_data('../../test.csv', '../../test_images', img_shape, orientations, pixels_per_cell, cells_per_block)
 #    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.5, random_state=1234)
     joblib.dump(X,"X.pkl")
 else:
@@ -85,16 +82,28 @@ else:
 
 n_units = 1000
 
-model = L.Classifier(net.MnistMLP(784, n_units, 10))
 
-serializers.load_npz('mlp0.model', model)
+#９個の分類器をテストデータの各行に適用
+pred = np.zeros((X.shape[0],9),dtype=X.dtype)
+for i_cls in range(9):
+    print(i_cls)
+    #予測
+    model = L.Classifier(net.MnistMLP(15000, n_units, 2))
+    
+    serializers.load_npz('mlp' + str(i_cls) + '.model', model)
+    
+    xp = np
+    x = chainer.Variable(xp.asarray(X))
+    
+    pred_raw = model.to_cpu().predictor(x)
+#        np.max(pred.data,axis=1)
+    
+    pred_bin = np.argmax(pred_raw.data,axis=1)
+    
+    pred[:,i_cls] = pred_bin
 
-xp = np
-x = chainer.Variable(xp.asarray(X))
+data_final = pd.DataFrame(pred)
 
-pred = model.to_cpu().predictor(x)
-np.max(pred.data,axis=1)
+data_final.to_csv('submission.csv',header=False)#,index=False)
 
-res_rand = np.argmax(pred.data,axis=1)
 
-#np.savetxt("pred_chainer.csv",c_rand,fmt = "%0d",delimiter=',',header = 'ImageId,Label',comments="")
