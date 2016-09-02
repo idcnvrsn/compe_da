@@ -32,7 +32,6 @@ import numpy as np
 import pandas as pd
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import accuracy_score
-from sklearn.metrics import log_loss
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.externals import joblib
@@ -47,7 +46,6 @@ from time import clock
 from PIL import Image
 from PIL import ImageOps
 from skimage.transform import resize
-from skimage import io
 
 fMakeTrain = 0
 fDoMode = 0
@@ -115,6 +113,8 @@ X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.5, random_s
 print('学習データの数:', len(X_train))
 print('検証データの数:', len(X_test))
 
+start = time.time()          
+
 #構築したmodel群のリスト
 models = []
 
@@ -122,7 +122,7 @@ batchsize = 100
 n_epoch = 40
 n_units = 1000
 
-dir_name = "epoch" + str(n_epoch)
+dir_name = datetime.now().strftime("%Y%m%d_%H%M%S") 
 os.mkdir(dir_name)
 
 #9クラス分の2分類器を学習と評価
@@ -226,9 +226,23 @@ for i_cls in range(9):
     
     pred[:,i_cls] = pred_bin
 
+elapsed_time = time.time() - start
+print( ("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
+
 print('test score',accuracy_score(y_test,pred))
 print(classification_report(y_test, pred))
 
 def mae(y, yhat):
     return np.mean(np.abs(y - yhat))
 print('MAE:', mae(y_test, pred))
+
+logfilename = dir_name + '/' + 'log.txt'
+with open(logfilename, "w") as file:
+    file.write(("elapsed_time:{0}".format(elapsed_time)) + "[sec]\n")
+    file.write("epoch:" + str(n_epoch))
+    file.write("train sample num:" + str(X_train.shape[0]) + '\n')
+    file.write('\n')
+    file.write('test accuracy score:' + str(accuracy_score(y_test,pred)) + '\n')
+    file.write('test MAE:' + str(mae(y_test, pred)) + '\n\n')
+    file.write(str(classification_report(y_test, pred))  + '\n')
+#        file.write(str(confusion_matrix(y_test, pred)))
