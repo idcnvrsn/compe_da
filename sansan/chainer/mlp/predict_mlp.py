@@ -76,12 +76,14 @@ if fMakeTest == 1:
     cells_per_block = (1, 1)
     X = load_data('../../test.csv', '../../test_images', img_shape, orientations, pixels_per_cell, cells_per_block)
 #    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.5, random_state=1234)
-    joblib.dump(X,"X.pkl")
+    joblib.dump(X,"test_X.pkl")
 else:
-    X = joblib.load("X.pkl")
+    X = joblib.load("test_X.pkl")
 
 n_units = 1000
 
+xp = np
+x = chainer.Variable(xp.asarray(X))
 
 #９個の分類器をテストデータの各行に適用
 pred = np.zeros((X.shape[0],9),dtype=X.dtype)
@@ -91,9 +93,6 @@ for i_cls in range(9):
     model = L.Classifier(net.MnistMLP(15000, n_units, 2))
     
     serializers.load_npz('mlp' + str(i_cls) + '.model', model)
-    
-    xp = np
-    x = chainer.Variable(xp.asarray(X))
     
     pred_raw = model.to_cpu().predictor(x)
 #        np.max(pred.data,axis=1)
