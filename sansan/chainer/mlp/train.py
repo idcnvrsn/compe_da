@@ -119,8 +119,11 @@ print('検証データの数:', len(X_test))
 models = []
 
 batchsize = 100
-n_epoch = 20
+n_epoch = 40
 n_units = 1000
+
+dir_name = "epoch" + str(n_epoch)
+os.mkdir(dir_name)
 
 #9クラス分の2分類器を学習と評価
 for classe in range(0,9):
@@ -203,9 +206,9 @@ for classe in range(0,9):
     
     # Save the model and the optimizer
     print('save the model' + str(classe))
-    serializers.save_npz('mlp' + str(classe) + '.model', model)
+    serializers.save_npz(dir_name + "/" + 'mlp' + str(classe) + '.model', model)
     print('save the optimizer' + str(classe))
-    serializers.save_npz('mlp' + str(classe) + '.state', optimizer)
+    serializers.save_npz(dir_name + "/" + 'mlp' + str(classe) + '.state', optimizer)
 
 #９個の分類器をテストデータの各行に適用
 pred = np.zeros(y_test.shape,dtype=y_test.dtype)
