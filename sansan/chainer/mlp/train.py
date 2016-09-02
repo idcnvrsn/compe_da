@@ -115,12 +115,15 @@ X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.8, random_s
 print('学習データの数:', len(X_train))
 print('検証データの数:', len(X_test))
 
+#構築したmodel群のリスト
+models = []
+
 batchsize = 100
 n_epoch = 20
 n_units = 1000
 
 #9クラス分の2分類器を学習と評価
-for classe in range(0,1):
+for classe in range(0,9):
     #クラスに属する:1,属さない:0のデータで2分類器学習
     y_train_s = y_train[:,classe]
     y_test_s = y_test[:,classe]
@@ -195,10 +198,16 @@ for classe in range(0,1):
     
         print('test' + str(classe) + '  mean loss={}, accuracy={}'.format(
             sum_loss / N_test, sum_accuracy / N_test))
+
+    models.append(model)
     
     # Save the model and the optimizer
     print('save the model')
     serializers.save_npz('mlp' + str(classe) + '.model', model)
     print('save the optimizer')
     serializers.save_npz('mlp' + str(classe) + '.state', optimizer)
+
+#９個の分類器をテストデータの各行に適用
+#for x in X_test:
+#    for
 
