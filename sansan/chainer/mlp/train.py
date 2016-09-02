@@ -208,6 +208,8 @@ for classe in range(0,9):
     serializers.save_npz('mlp' + str(classe) + '.state', optimizer)
 
 #９個の分類器をテストデータの各行に適用
-#for x in X_test:
-#    for
+for x in X_test:
+    for i_cls in range(9):
+        #予測
+    
 
