@@ -2,10 +2,6 @@
 """
 Created on Tue Sep 20 09:15:47 2016
 """
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Sep 19 21:00:50 2016
-"""
 from __future__ import print_function
 import argparse
 
@@ -18,19 +14,23 @@ from chainer.training import extensions
 
 # Network definition
 class MLP(chainer.Chain):
-    super(NIN, self).__init__(
-    model = chainer.FunctionSet(conv1=F.Convolution2D(3, 32, 3, pad=1),
-                                conv2=F.Convolution2D(32, 32, 3, pad=1),
-                                l1=F.Linear(2048, 1024),
-                                l2=F.Linear(1024, 10))
+    def __init__(self):
+        super(MLP, self).__init__(
+        conv1=F.Convolution2D(3, 32, 3, pad=1),
+        conv2=F.Convolution2D(32, 32, 3, pad=1),
+        l1=F.Linear(2048, 1024),
+        l2=F.Linear(1024, 10)
+        )
+        self.train = True
     
-    def forward(x_data, y_data, train=True):
-        x, t = chainer.Variable(x_data), chainer.Variable(y_data)
-        h = F.max_pooling_2d(F.relu(model.conv1(x)), 2)
-        h = F.max_pooling_2d(F.relu(model.conv2(h)), 2)
-        h = F.dropout(F.relu(model.l1(h)), train=train)
-        y = model.l2(h)
-        if train:
+#    def forward(x_data, y_data, train=True):
+    def __call__(self, x, t):
+        x, t = chainer.Variable(x), chainer.Variable(t)
+        h = F.max_pooling_2d(F.relu(self.conv1(x)), 2)
+        h = F.max_pooling_2d(F.relu(self.conv2(h)), 2)
+        h = F.dropout(F.relu(self.l1(h)), train=self.train)
+        y = self.l2(h)
+        if self.train:
             return F.softmax_cross_entropy(y, t)
         else:
             return F.accuracy(y, t)
@@ -78,7 +78,7 @@ def main():
     # Set up a neural network to train
     # Classifier reports softmax cross entropy loss and accuracy at every
     # iteration, which will be used by the PrintReport extension below.
-    model = L.Classifier(MLP(784, args.unit, 10))
+    model = L.Classifier(MLP())
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()  # Make a specified GPU current
         model.to_gpu()  # Copy the model to the GPU
@@ -87,8 +87,8 @@ def main():
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    # Load the MNIST dataset
-    train, test = chainer.datasets.get_mnist()
+    # Load data
+#    train, test = chainer.datasets.get_mnist()
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
