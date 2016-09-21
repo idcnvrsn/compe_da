@@ -35,6 +35,15 @@ import time
 from time import clock
 from PIL import Image
 
+import chainer
+from chainer import computational_graph
+from chainer import cuda
+import chainer.links as L
+from chainer import optimizers
+from chainer import serializers
+
+import six
+
 fMakeTrain = 0
 fDoMode = 0
 
@@ -154,9 +163,9 @@ print('検証データの数:', len(X_test))
 """
 
 # Network definition
-class MLP(chainer.Chain):
+class CNN(chainer.Chain):
     def __init__(self):
-        super(MLP, self).__init__(
+        super(CNN, self).__init__(
         conv1=F.Convolution2D(3, 32, 3, pad=1),
         conv2=F.Convolution2D(32, 32, 3, pad=1),
         l1=F.Linear(2048, 1024),
@@ -192,90 +201,89 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 """
 
+parser = argparse.ArgumentParser(description='Chainer example: MNIST')
+parser.add_argument('--initmodel', '-m', default='',
+                    help='Initialize the model from given file')
+parser.add_argument('--resume', '-r', default='',
+                    help='Resume the optimization from snapshot')
+parser.add_argument('--net', '-n', choices=('simple', 'parallel'),
+                    default='simple', help='Network type')
+parser.add_argument('--gpu', '-g', default=-1, type=int,
+                    help='GPU ID (negative value indicates CPU)')
+args = parser.parse_args()
+
+batchsize = 100
+n_epoch = 20
+n_units = 1000
+
+# Prepare multi-layer perceptron model, defined in net.py
+#if args.net == 'simple':
+model = L.Classifier(CNN())
+
+#    model = L.Classifier(net.MnistMLP(784, n_units, 10))
+if args.gpu >= 0:
+    cuda.get_device(args.gpu).use()
+    model.to_gpu()
+xp = np if args.gpu < 0 else cuda.cupy
 
 
+# Setup optimizer
+optimizer = optimizers.Adam()
+optimizer.setup(model)
 
+# Init/Resume
+if args.initmodel:
+    print('Load model from', args.initmodel)
+    serializers.load_npz(args.initmodel, model)
+if args.resume:
+    print('Load optimizer state from', args.resume)
+    serializers.load_npz(args.resume, optimizer)
 
-def main():
-    parser = argparse.ArgumentParser(description='Chainer example: MNIST')
-    parser.add_argument('--batchsize', '-b', type=int, default=100,
-                        help='Number of images in each mini batch')
-    parser.add_argument('--epoch', '-e', type=int, default=20,
-                        help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--out', '-o', default='result',
-                        help='Directory to output the result')
-    parser.add_argument('--resume', '-r', default='',
-                        help='Resume the training from snapshot')
-    parser.add_argument('--unit', '-u', type=int, default=1000,
-                        help='Number of units')
-    args = parser.parse_args()
+# Learning loop
+for epoch in six.moves.range(1, n_epoch + 1):
+    print('epoch', epoch)
 
-    print('GPU: {}'.format(args.gpu))
-    print('# unit: {}'.format(args.unit))
-    print('# Minibatch-size: {}'.format(args.batchsize))
-    print('# epoch: {}'.format(args.epoch))
-    print('')
+    # training
+    perm = np.random.permutation(N)
+    sum_accuracy = 0
+    sum_loss = 0
+    for i in six.moves.range(0, N, batchsize):
+        x = chainer.Variable(xp.asarray(x_train[perm[i:i + batchsize]]))
+        t = chainer.Variable(xp.asarray(y_train[perm[i:i + batchsize]]))
 
-    # Set up a neural network to train
-    # Classifier reports softmax cross entropy loss and accuracy at every
-    # iteration, which will be used by the PrintReport extension below.
-    model = L.Classifier(MLP())
-    if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # Make a specified GPU current
-        model.to_gpu()  # Copy the model to the GPU
+        # Pass the loss function (Classifier defines it) and its arguments
+        optimizer.update(model, x, t)
 
-    # Setup an optimizer
-    optimizer = chainer.optimizers.Adam()
-    optimizer.setup(model)
+        if epoch == 1 and i == 0:
+            with open('graph.dot', 'w') as o:
+                g = computational_graph.build_computational_graph(
+                    (model.loss, ), remove_split=True)
+                o.write(g.dump())
+            print('graph generated')
 
-    # Load data
-#    train, test = chainer.datasets.get_mnist()
+        sum_loss += float(model.loss.data) * len(t.data)
+        sum_accuracy += float(model.accuracy.data) * len(t.data)
 
-    train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
-    test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
-                                                 repeat=False, shuffle=False)
+    print('train mean loss={}, accuracy={}'.format(
+        sum_loss / N, sum_accuracy / N))
 
-    # Set up a trainer
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
+    # evaluation
+    sum_accuracy = 0
+    sum_loss = 0
+    for i in six.moves.range(0, N_test, batchsize):
+        x = chainer.Variable(xp.asarray(x_test[i:i + batchsize]),
+                             volatile='on')
+        t = chainer.Variable(xp.asarray(y_test[i:i + batchsize]),
+                             volatile='on')
+        loss = model(x, t)
+        sum_loss += float(loss.data) * len(t.data)
+        sum_accuracy += float(model.accuracy.data) * len(t.data)
 
-    # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
+    print('test  mean loss={}, accuracy={}'.format(
+        sum_loss / N_test, sum_accuracy / N_test))
 
-    # Dump a computational graph from 'loss' variable at the first iteration
-    # The "main" refers to the target link of the "main" optimizer.
-    trainer.extend(extensions.dump_graph('main/loss'))
-
-    # Take a snapshot at each epoch
-    trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
-
-    # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport())
-
-    # Print selected entries of the log to stdout
-    # Here "main" refers to the target link of the "main" optimizer again, and
-    # "validation" refers to the default name of the Evaluator extension.
-    # Entries other than 'epoch' are reported by the Classifier link, called by
-    # either the updater or the evaluator.
-    trainer.extend(extensions.PrintReport(
-        ['epoch', 'main/loss', 'validation/main/loss',
-         'main/accuracy', 'validation/main/accuracy']))
-
-    # Print a progress bar to stdout
-    trainer.extend(extensions.ProgressBar())
-
-    if args.resume:
-        # Resume from a snapshot
-        chainer.serializers.load_npz(args.resume, trainer)
-
-    # Run the training
-    trainer.run()
-
-if __name__ == '__main__':
-    main()
-
-
-    
-
+# Save the model and the optimizer
+print('save the model')
+serializers.save_npz('mlp.model', model)
+print('save the optimizer')
+serializers.save_npz('mlp.state', optimizer)
