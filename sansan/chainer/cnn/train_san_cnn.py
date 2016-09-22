@@ -13,8 +13,6 @@ from chainer.training import extensions
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier#ExtraTreesClassifier
-from sklearn.grid_search import GridSearchCV
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import log_loss
@@ -22,9 +20,6 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.externals import joblib
 from datetime import datetime
-from evolutionary_search import EvolutionaryAlgorithmSearchCV
-from sklearn.cross_validation import StratifiedKFold
-from xgboost import XGBClassifier
 import math
 from sklearn.metrics import mean_absolute_error
 
@@ -44,7 +39,7 @@ from chainer import serializers
 
 import six
 
-fMakeTrain = 0
+fMakeTrain = 1
 fDoMode = 0
 
 if fMakeTrain == 1:
@@ -74,6 +69,7 @@ if fMakeTrain == 1:
         X = np.zeros((len(df), 1, _img_len, _img_len), dtype=np.float32)
     
         for i, row in df.iterrows():
+            print(i,dir_images, row.filename)
             img = Image.open(os.path.join(dir_images, row.filename))
             img = img.crop((row.left, row.top, row.right, row.bottom))
             img = img.convert('L')
@@ -214,7 +210,6 @@ args = parser.parse_args()
 
 batchsize = 100
 n_epoch = 20
-n_units = 1000
 
 # Prepare multi-layer perceptron model, defined in net.py
 #if args.net == 'simple':
@@ -244,11 +239,11 @@ for epoch in six.moves.range(1, n_epoch + 1):
     print('epoch', epoch)
 
     # training
-    perm = np.random.permutation(N)
+    perm = np.random.permutation(X_train.shape[0])
     sum_accuracy = 0
     sum_loss = 0
-    for i in six.moves.range(0, N, batchsize):
-        x = chainer.Variable(xp.asarray(x_train[perm[i:i + batchsize]]))
+    for i in six.moves.range(0, X_train.shape[0], batchsize):
+        x = chainer.Variable(xp.asarray(X_train[perm[i:i + batchsize]]))
         t = chainer.Variable(xp.asarray(y_train[perm[i:i + batchsize]]))
 
         # Pass the loss function (Classifier defines it) and its arguments
@@ -265,13 +260,13 @@ for epoch in six.moves.range(1, n_epoch + 1):
         sum_accuracy += float(model.accuracy.data) * len(t.data)
 
     print('train mean loss={}, accuracy={}'.format(
-        sum_loss / N, sum_accuracy / N))
+        sum_loss / X_train.shape[0], sum_accuracy / X_train.shape[0]))
 
     # evaluation
     sum_accuracy = 0
     sum_loss = 0
-    for i in six.moves.range(0, N_test, batchsize):
-        x = chainer.Variable(xp.asarray(x_test[i:i + batchsize]),
+    for i in six.moves.range(0, X_test.shape[0], batchsize):
+        x = chainer.Variable(xp.asarray(X_test[i:i + batchsize]),
                              volatile='on')
         t = chainer.Variable(xp.asarray(y_test[i:i + batchsize]),
                              volatile='on')
@@ -280,7 +275,7 @@ for epoch in six.moves.range(1, n_epoch + 1):
         sum_accuracy += float(model.accuracy.data) * len(t.data)
 
     print('test  mean loss={}, accuracy={}'.format(
-        sum_loss / N_test, sum_accuracy / N_test))
+        sum_loss / X_test.shape[0], sum_accuracy / X_test.shape[0]))
 
 # Save the model and the optimizer
 print('save the model')
