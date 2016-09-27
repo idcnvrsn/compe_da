@@ -128,8 +128,8 @@ class CNN(chainer.Chain):
         h = F.max_pooling_2d(F.relu(self.conv2(h)), 2)
         h = F.dropout(F.relu(self.l1(h)), train=self.train)
         y = self.l2(h)
-        print("end __call__")
-        print("y shape",y.data.shape)
+#        print("end __call__")
+#        print("y shape",y.data.shape)
         return y
         """
         h = F.reshape(y, (x.data.shape[0], 9))
@@ -208,10 +208,10 @@ for epoch in six.moves.range(1, n_epoch + 1):
     sum_accuracy = 0
     sum_loss = 0
     for i in six.moves.range(0, X_train.shape[0], batchsize):
-#        x = chainer.Variable(xp.asarray(X_train[perm[i:i + batchsize]]))
-#        t = chainer.Variable(xp.asarray(y_train[perm[i:i + batchsize]]))
-        x = xp.asarray(X_train[perm[i:i + batchsize]])
-        t = xp.asarray(y_train[perm[i:i + batchsize]])
+        x = chainer.Variable(xp.asarray(X_train[perm[i:i + batchsize]]))
+        t = chainer.Variable(xp.asarray(y_train[perm[i:i + batchsize],0]))
+#        x = xp.asarray(X_train[perm[i:i + batchsize]])
+#        t = xp.asarray(y_train[perm[i:i + batchsize],0])
 
         # Pass the loss function (Classifier defines it) and its arguments
         optimizer.update(model, x, t)
@@ -233,14 +233,12 @@ for epoch in six.moves.range(1, n_epoch + 1):
     sum_accuracy = 0
     sum_loss = 0
     for i in six.moves.range(0, X_test.shape[0], batchsize):
-        """
         x = chainer.Variable(xp.asarray(X_test[i:i + batchsize]),
                              volatile='on')
-        t = chainer.Variable(xp.asarray(y_test[i:i + batchsize]),
+        t = chainer.Variable(xp.asarray(y_test[i:i + batchsize,0]),
                              volatile='on')
-        """
-        x = xp.asarray(X_test[i:i + batchsize])
-        t = xp.asarray(y_test[i:i + batchsize])
+#        x = xp.asarray(X_test[i:i + batchsize])
+#        t = xp.asarray(y_test[i:i + batchsize,0])
         loss = model(x, t)
         sum_loss += float(loss.data) * len(t.data)
         sum_accuracy += float(model.accuracy.data) * len(t.data)
