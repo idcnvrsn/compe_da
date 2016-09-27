@@ -98,70 +98,12 @@ else:
     y = joblib.load("y.pkl")
 
 y = y.astype(np.int32)
-print("shape",X.shape)
 X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.8, random_state=1234)
-#y_test = y_test.astype("int32")
+print("X_train shape",X_train.shape)
+print("y_train shape",y_train.shape)
 
 print('学習データの数:', len(X_train))
 print('検証データの数:', len(X_test))
-
-"""
-fMakeTrain = 0
-fDoMode = 0
-
-if fMakeTrain == 1:
-    def load_data(file_name, img_dir, img_shape, orientations, pixels_per_cell, cells_per_block):
-        classes = ['company_name', 'full_name', 'position_name', 'address', 'phone_number', 'fax', 'mobile', 'email', 'url']
-        df = pd.read_csv(file_name)
-        n = len(df)
-        Y = np.zeros((n, len(classes)))
-        print('loading...')
-        s = clock()
-        for i, row in df.iterrows():
-            f, l, t, r, b = row.filename, row.left, row.top, row.right, row.bottom
-            print(i,f)
-            img = Image.open(os.path.join(img_dir, f)).crop((l,t,r,b)) # 項目領域画像を切り出す
-            if img.size[0]<img.size[1]:                                # 縦長の画像に関しては90度回転して横長の画像に統一する
-                img = img.transpose(Image.ROTATE_90)
-            
-            # preprocess
-            img_gray = img.convert('L')
-            img_gray = np.array(img_gray.resize(img_shape))/255.       # img_shapeに従った大きさにそろえる
-    
-    
-            # feature extraction
-            img = np.array(hog(img_gray,orientations = orientations,
-                               pixels_per_cell = pixels_per_cell,
-                               cells_per_block = cells_per_block))
-            if i == 0:
-                feature_dim = len(img)
-                print('feature dim:', feature_dim)
-                X = np.zeros((n, feature_dim))
-            
-            X[i,:] = np.array([img])
-            y = list(row[classes])
-            Y[i,:] = np.array(y)
-        
-        print('Done. Took', clock()-s, 'seconds.')
-        return X, Y
-        
-    
-    img_shape = (216,72)
-    orientations = 6
-    pixels_per_cell = (12,12)
-    cells_per_block = (1, 1)
-    X, y = load_data('../../train.csv', '../../train_images', img_shape, orientations, pixels_per_cell, cells_per_block)
-#    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.5, random_state=1234)
-    joblib.dump(X,"X.pkl")
-    joblib.dump(y,"y.pkl")
-else:
-    X = joblib.load("X.pkl")
-    y = joblib.load("y.pkl")
-
-X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.8, random_state=1234)
-print('学習データの数:', len(X_train))
-print('検証データの数:', len(X_test))
-"""
 
 # Network definition
 class CNN(chainer.Chain):
@@ -170,23 +112,41 @@ class CNN(chainer.Chain):
         conv1=F.Convolution2D(1, 96, 3, pad=1),
         conv2=F.Convolution2D(96, 32, 3, pad=1),
         l1=F.Linear(18432, 1024),
-        l2=F.Linear(1024, 10)
+        l2=F.Linear(1024, 9)
         )
         self.train = True
+
+    def clear(self):
+        self.loss = None
+        self.accuracy = None
     
 #    def forward(x_data, y_data, train=True):
     def __call__(self, x):#, t):
 #        x, t = chainer.Variable(x), chainer.Variable(t)
-        x = chainer.Variable(x)
+#        x = chainer.Variable(x)
         h = F.max_pooling_2d(F.relu(self.conv1(x)), 2)
         h = F.max_pooling_2d(F.relu(self.conv2(h)), 2)
         h = F.dropout(F.relu(self.l1(h)), train=self.train)
         y = self.l2(h)
+        print("end __call__")
+        print("y shape",y.data.shape)
         return y
-#        if self.train:
-#            return F.softmax_cross_entropy(y, t)
-#        else:
-#            return F.accuracy(y, t)
+        """
+        h = F.reshape(y, (x.data.shape[0], 9))
+        print("final shape",h.data.shape)
+
+        self.loss = F.softmax_cross_entropy(h, t)
+        self.accuracy = F.accuracy(h, t)
+        return self.loss
+        """
+
+        """
+        if self.train:
+           return F.softmax_cross_entropy(y, t)
+        else:
+            return F.accuracy(y, t)
+
+        """
 
 """
     def __init__(self, n_in, n_units, n_out):
