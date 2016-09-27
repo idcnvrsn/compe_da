@@ -97,9 +97,11 @@ else:
     X = joblib.load("X.pkl")
     y = joblib.load("y.pkl")
 
-y = y.astype("float32")
+y = y.astype(np.int32)
 print("shape",X.shape)
 X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.8, random_state=1234)
+#y_test = y_test.astype("int32")
+
 print('学習データの数:', len(X_train))
 print('検証データの数:', len(X_test))
 
@@ -271,10 +273,14 @@ for epoch in six.moves.range(1, n_epoch + 1):
     sum_accuracy = 0
     sum_loss = 0
     for i in six.moves.range(0, X_test.shape[0], batchsize):
+        """
         x = chainer.Variable(xp.asarray(X_test[i:i + batchsize]),
                              volatile='on')
         t = chainer.Variable(xp.asarray(y_test[i:i + batchsize]),
                              volatile='on')
+        """
+        x = xp.asarray(X_test[i:i + batchsize])
+        t = xp.asarray(y_test[i:i + batchsize])
         loss = model(x, t)
         sum_loss += float(loss.data) * len(t.data)
         sum_accuracy += float(model.accuracy.data) * len(t.data)
