@@ -250,8 +250,8 @@ for epoch in six.moves.range(1, n_epoch + 1):
     for i in six.moves.range(0, X_train.shape[0], batchsize):
 #        x = chainer.Variable(xp.asarray(X_train[perm[i:i + batchsize]]))
 #        t = chainer.Variable(xp.asarray(y_train[perm[i:i + batchsize]]))
-        x = X_train[perm[i:i + batchsize]]
-        t = y_train[perm[i:i + batchsize]]
+        x = xp.asarray(X_train[perm[i:i + batchsize]])
+        t = xp.asarray(y_train[perm[i:i + batchsize]])
 
         # Pass the loss function (Classifier defines it) and its arguments
         optimizer.update(model, x, t)
