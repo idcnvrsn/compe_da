@@ -86,6 +86,7 @@ if fMakeTrain == 1:
         df = pd.read_csv(train_csv)
         X = _load_rawdata(df, train_images)
         Y = df[_columns].values
+#        Y = Y.astype("float32")
         return X, Y
     
     X, y = load_train_data()
@@ -96,6 +97,8 @@ else:
     X = joblib.load("X.pkl")
     y = joblib.load("y.pkl")
 
+y = y.astype("float32")
+print("shape",X.shape)
 X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.8, random_state=1234)
 print('学習データの数:', len(X_train))
 print('検証データの数:', len(X_test))
@@ -162,9 +165,9 @@ print('検証データの数:', len(X_test))
 class CNN(chainer.Chain):
     def __init__(self):
         super(CNN, self).__init__(
-        conv1=F.Convolution2D(3, 32, 3, pad=1),
-        conv2=F.Convolution2D(32, 32, 3, pad=1),
-        l1=F.Linear(2048, 1024),
+        conv1=F.Convolution2D(1, 96, 3, pad=1),
+        conv2=F.Convolution2D(96, 32, 3, pad=1),
+        l1=F.Linear(18432, 1024),
         l2=F.Linear(1024, 10)
         )
         self.train = True
